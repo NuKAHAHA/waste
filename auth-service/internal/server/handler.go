@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/ibm-techxchange/waste-management/auth-service/internal/model"
 	"go.uber.org/zap"
+
+	"auth-service/internal/model"
 )
 
 type registerRequest struct {

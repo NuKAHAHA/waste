@@ -3,10 +3,11 @@ package server
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
-	"github.com/ibm-techxchange/waste-management/auth-service/internal/model"
-	"github.com/ibm-techxchange/waste-management/auth-service/internal/repo"
-	"github.com/ibm-techxchange/waste-management/auth-service/internal/service"
 	"go.uber.org/zap"
+
+	"auth-service/internal/model"
+	"auth-service/internal/repo"
+	"auth-service/internal/service"
 )
 
 type AuthServer struct {

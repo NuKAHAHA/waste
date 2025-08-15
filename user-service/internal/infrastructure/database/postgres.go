@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ibm-techxchange/waste-management/user-service/internal/domain"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
+	"user-service/internal/domain"
 )
 
 func NewPostgresDatabase() (*gorm.DB, error) {

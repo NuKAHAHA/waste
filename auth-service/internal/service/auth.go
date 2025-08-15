@@ -10,7 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
-	"github.com/ibm-techxchange/waste-management/auth-service/internal/model"
+	"auth-service/internal/model"
 )
 
 var (

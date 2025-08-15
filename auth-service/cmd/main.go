@@ -5,10 +5,11 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/ibm-techxchange/waste-management/auth-service/internal/repo"
-	"github.com/ibm-techxchange/waste-management/auth-service/internal/server"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
+
+	"auth-service/internal/repo"
+	"auth-service/internal/server"
 )
 
 func main() {

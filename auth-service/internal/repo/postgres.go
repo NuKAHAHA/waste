@@ -10,7 +10,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/ibm-techxchange/waste-management/auth-service/internal/model"
+	"auth-service/internal/model"
 )
 
 type PostgresDatabase struct {

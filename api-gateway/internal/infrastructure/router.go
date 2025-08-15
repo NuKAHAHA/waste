@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
-	"github.com/ibm-techxchange/waste-management/auth-service/internal/service"
 )
 
 type AuthHandler struct {

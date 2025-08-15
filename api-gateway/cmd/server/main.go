@@ -1,11 +1,11 @@
 package main
 
 import (
+	"auth-service/internal/service"
 	"log"
 	"net/http"
 
-	"github.com/ibm-techxchange/waste-management/api-gateway/internal/infrastructure"
-	"github.com/ibm-techxchange/waste-management/auth-service/internal/service"
+	"api-gateway/internal/infrastructure"
 )
 
 func main() {

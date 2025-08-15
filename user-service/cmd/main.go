@@ -4,8 +4,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/ibm-techxchange/waste-management/user-service/internal/infrastructure/database"
-	"github.com/ibm-techxchange/waste-management/user-service/internal/infrastructure/server"
+	"user-service/internal/infrastructure/database"
+	"user-service/internal/infrastructure/server"
 )
 
 func main() {
