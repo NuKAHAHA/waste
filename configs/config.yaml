@@ -1,0 +1,19 @@
+server:
+  port: 8080
+  environment: development
+
+services:
+  auth:
+    port: 8081
+    jwt_expiry: 24h
+
+database:
+  host: localhost
+  port: 5432
+  name: waste_management
+
+# заполнить!!!!!
+  
+logging:
+  level: info
+  format: json
