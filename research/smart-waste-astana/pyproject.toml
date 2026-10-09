@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=77,<81"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "smart-waste-astana"
+version = "1.0.0"
+description = "Reproducible multi-agent waste collection research demonstrator"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = []
+
+[project.scripts]
+smart-waste = "smart_waste.cli:main"
+
+[tool.setuptools]
+packages = ["smart_waste"]
+

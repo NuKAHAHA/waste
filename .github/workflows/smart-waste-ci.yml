@@ -1,0 +1,74 @@
+name: Smart Waste CI and Delivery
+
+on:
+  push:
+    branches: [main, 'assignment-3/**']
+    paths: ['research/smart-waste-astana/**', '.github/workflows/smart-waste-*.yml']
+  pull_request:
+    paths: ['research/smart-waste-astana/**', '.github/workflows/smart-waste-*.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smart-waste-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: '3.11'
+          - os: ubuntu-latest
+            python: '3.13'
+          - os: windows-latest
+            python: '3.12'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: research/smart-waste-astana
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Compile source
+        run: python -m compileall -q smart_waste tests tools
+      - name: Behavioral tests
+        run: python -m unittest discover -s tests -v
+      - name: End to end demonstration
+        run: python main.py demo --output results
+      - name: Build source distribution
+        run: python tools/build_release.py
+      - name: Verify standalone distribution
+        run: python tools/check_release.py
+
+  deliver:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: research/smart-waste-astana
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: python main.py demo --output results
+      - run: python tools/build_release.py
+      - name: Deliver verified code and scientific outputs
+        uses: actions/upload-artifact@v7
+        with:
+          name: smart-waste-astana-${{ github.sha }}
+          path: |
+            research/smart-waste-astana/dist/*.zip
+            research/smart-waste-astana/results/
+          if-no-files-found: error
+          retention-days: 30
+
