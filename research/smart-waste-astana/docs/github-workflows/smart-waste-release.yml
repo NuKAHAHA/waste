@@ -32,6 +32,15 @@ jobs:
         run: python tools/export_report.py
       - run: python tools/build_release.py
       - run: python tools/check_release.py
+      - name: Deliver verified report and source archive
+        uses: actions/upload-artifact@v7
+        with:
+          name: smart-waste-exact-font-${{ github.sha }}
+          path: |
+            research/smart-waste-astana/dist/*.zip
+            research/smart-waste-astana/docs/report/*.pdf
+          if-no-files-found: error
+          retention-days: 30
       - name: Publish immutable version after verification
         shell: bash
         env:
