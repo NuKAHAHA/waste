@@ -120,8 +120,9 @@ NaN, Infinity, дубликаты bin/date, пустые поля и сброс�
 После всех успешных проверок ZIP и результаты доставляются как GitHub Actions artifact.
 Отдельный workflow `.github/workflows/smart-waste-release.yml` публикует проверенный
 ZIP как GitHub Release при добавлении VERSION в main или ручном запуске.
-Существующий релиз 1.0.0 сохраняется; для нового релиза нужно обновить версию в
-pyproject.toml, VERSION, tools/build_release.py и release workflow.
+Существующий релиз сохраняется; для нового релиза нужно обновить версию в
+pyproject.toml, VERSION, smart_waste/__init__.py и release workflow.
+Release workflow формирует PDF с настоящим Times New Roman в Windows перед сборкой ZIP.
 Это доставка научного инструмента, не веб-деплой.
 Сведения о реальных запусках и ссылки на них находятся в `docs/validation.md`.
 
@@ -131,7 +132,7 @@ pyproject.toml, VERSION, tools/build_release.py и release workflow.
 py -3 tools\build_release.py
 ```
 
-Создаётся `dist/smart-waste-astana-1.0.0.zip` с исходным кодом, тестами, лицензией,
+Создаётся `dist/smart-waste-astana-1.0.1.zip` с исходным кодом, тестами, лицензией,
 документацией и демонстрационными данными. ZIP запускается без установки пакета.
 Дополнительно поддерживается стандартная установка `python -m pip install .`
 и команда `smart-waste demo`; для этой установки pip скачивает build backend.

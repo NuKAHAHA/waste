@@ -36,7 +36,5 @@ Workflow Smart Waste Release повторяет тесты и публикует
 ## Формат аналитического отчёта
 
 DOCX задаёт Times New Roman, 12 pt, интервал 1.5 и выравнивание основного текста по ширине.
-PDF экспортирован с метрически совместимым Liberation Serif, поскольку Times New Roman
-отсутствует в среде экспорта. Для строгого требования к названию шрифта открыть DOCX
-в Microsoft Word на Windows с Times New Roman и экспортировать в PDF.
-
+Точный PDF формируется workflow Smart Waste Release на Windows со встроенным Times New Roman.
+Дополнительные библиотеки нужны только для экспорта отчёта, а не для запуска модуля.
