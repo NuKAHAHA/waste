@@ -5,7 +5,7 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 ROOT = Path(__file__).resolve().parents[1]
 NAME = "smart-waste-astana-1.0.0"
 FILES = ("README.md", "LICENSE", "CONTRIBUTING.md", "main.py", "run_demo.bat",
-         "pyproject.toml", "requirements.txt", ".gitignore")
+         "pyproject.toml", "requirements.txt", ".gitignore", "VERSION")
 DIRECTORIES = ("smart_waste", "tests", "data", "docs", "tools")
 
 

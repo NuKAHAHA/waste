@@ -39,3 +39,15 @@ docker-compose up --build
 - Kubernetes
 - Prometheus
 - Jaeger
+
+## Scientific research module — Assignment 3
+
+[Smart Waste Astana](research/smart-waste-astana/README.md) is an independent Python research module with two/five explainable agents, synthetic Astana telemetry, offline HTML/CSV/JSON results, 30 automated tests and verified ZIP delivery. It runs without third-party runtime dependencies:
+
+```bash
+cd research/smart-waste-astana
+python main.py demo
+python -m unittest discover -s tests -v
+```
+
+[Analytical report](research/smart-waste-astana/docs/report/Assignment_3_Smart_Waste_Report_RU.pdf) · [Editable report](research/smart-waste-astana/docs/report/Assignment_3_Smart_Waste_Report_RU.docx) · [CI/CD](.github/workflows/smart-waste-ci.yml) · [Validation](research/smart-waste-astana/docs/validation.md)
