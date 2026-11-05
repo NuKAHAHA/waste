@@ -51,3 +51,15 @@ python -m unittest discover -s tests -v
 ```
 
 [Analytical report](research/smart-waste-astana/docs/report/Assignment_3_Smart_Waste_Report_RU.pdf) · [Editable report](research/smart-waste-astana/docs/report/Assignment_3_Smart_Waste_Report_RU.docx) · [CI/CD](.github/workflows/smart-waste-ci.yml) · [Validation](research/smart-waste-astana/docs/validation.md)
+
+## Multi-agent AI system — Waste MAS
+
+[Waste MAS](research/waste-mas/README.md) — многоагентная ИИ-система планирования вывоза ТБО:
+оркестратор и 6 агентов (данные, прогноз, приоритеты, маршруты, проверяющий, отчёт), SQLite-память,
+календарь РК, опциональная LLM, 18 тестовых сценариев, логи распределения нагрузки, отчёт и презентация.
+
+```bash
+cd research/waste-mas
+python main.py demo
+python main.py scenarios
+```

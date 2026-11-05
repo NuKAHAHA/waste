@@ -1,0 +1,40 @@
+digraph MAS {
+  graph [rankdir=TB, newrank=true, ordering=out,  fontname="Helvetica", fontsize=12, nodesep=0.35, ranksep=0.7, bgcolor="white", pad=0.3];
+  node  [fontname="Helvetica", fontsize=11, shape=box, style="rounded,filled", fillcolor="#f3f2ee", color="#c3c2b7"];
+  edge  [fontname="Helvetica", fontsize=9.5, color="#52514e"];
+
+  user  [label="Диспетчер\nCLI: python main.py demo", fillcolor="#ffffff"];
+  orch  [label=<<b>Оркестратор</b><br/><font point-size="9.5">план задач · рассылка сообщений<br/>лимиты шагов/времени · перепланирование<br/>предметной работы не выполняет</font>>, fillcolor="#dbe8f8", color="#2a78d6", penwidth=1.6];
+
+  subgraph cluster_agents {
+    label="Агенты (у каждого ≤ 5 инструментов)"; style="rounded,dashed"; color="#c3c2b7"; fontcolor="#52514e";
+    data  [label=<<b>1. DataAgent</b><br/><font point-size="9">read_csv · validate_readings · db_write</font>>];
+    fc    [label=<<b>2. ForecastAgent</b><br/><font point-size="9">db_read · load_calendar · estimate_rates<br/>project_fill · db_write</font>>];
+    pr    [label=<<b>3. PriorityAgent</b><br/><font point-size="9">db_read · score_bins · defer_bins · db_write</font>>];
+    rt    [label=<<b>4. RouteAgent</b><br/><font point-size="9">db_read · distance_matrix · build_trips<br/>improve_2opt · db_write</font>>];
+    ver   [label=<<b>5. VerifierAgent</b> (проверяющий)<br/><font point-size="9">db_read · check_plan · backtest · db_write</font>>, fillcolor="#fde9e1", color="#eb6834"];
+    rep   [label=<<b>6. ReportAgent</b><br/><font point-size="9">db_read · llm_complete · template_summary<br/>write_outputs</font>>];
+    {rank=same; data; fc; pr; rt; ver; rep;}
+    data -> fc -> pr -> rt -> ver -> rep [style=invis, weight=10];
+  }
+
+  db    [label="SQLite state.db\n(общая память: runs, readings,\nartifacts с версиями, messages)", shape=cylinder, fillcolor="#e6f4ec", color="#1baf7a"];
+  csv   [label="CSV телеметрия\nконтейнеров", shape=note, fillcolor="#ffffff"];
+  cal   [label="Календарь РК 2026\n(JSON, egov.kz)", shape=note, fillcolor="#ffffff"];
+  llm   [label="LLM API (опционально)\nOpenAI-совместимый / Ollama\nключ — из окружения", shape=component, fillcolor="#ffffff", style="rounded,dashed,filled"];
+  out   [label="report.json · plan.csv\ndashboard.html", shape=folder, fillcolor="#ffffff"];
+  log   [label="logs/run_*.jsonl\nload_report.md", shape=folder, fillcolor="#ffffff"];
+
+  user -> orch [label="запуск"];
+  orch -> data [xlabel="task/result (JSON)"];
+  orch -> fc; orch -> pr; orch -> rt;
+  orch -> ver [dir=both, color="#eb6834", fontcolor="#eb6834", xlabel="вердикт; при fix=defer\nпереплан: priority.defer →\nroute → verify (≤3 раз)"];
+  orch -> rep;
+
+  {rank=same; orch; log;}
+  data -> csv [dir=back]; fc -> cal [dir=back]; llm -> rep [dir=both, style=dashed, constraint=false]; rep -> out;
+  {data fc pr rt ver rep} -> db [dir=both, color="#1baf7a", arrowsize=0.6];
+  orch -> log [style=dotted, label="все вызовы"];
+  {rank=same; csv; cal; db; out; llm;}
+  csv -> cal -> db -> out -> llm [style=invis];
+}

@@ -1,0 +1,45 @@
+name: Waste MAS CI
+
+on:
+  push:
+    paths: ['research/waste-mas/**', '.github/workflows/waste-mas-ci.yml']
+  pull_request:
+    paths: ['research/waste-mas/**', '.github/workflows/waste-mas-ci.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: '3.11'
+          - os: ubuntu-latest
+            python: '3.13'
+          - os: windows-latest
+            python: '3.12'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: research/waste-mas
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m compileall -q wastemas tests
+      - run: python -m unittest discover -s tests -v
+      - run: python main.py demo
+      - run: python main.py scenarios
+      - uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.13'
+        with:
+          name: waste-mas-results
+          path: research/waste-mas/results/
