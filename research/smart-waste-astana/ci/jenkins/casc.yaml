@@ -1,0 +1,47 @@
+# Jenkins Configuration as Code: admin user, credentials and the pipeline job.
+# Values in ${...} come from ci/jenkins/.env (see .env.example).
+jenkins:
+  systemMessage: "Smart Waste Astana: CI/CD for the 5-agent research module (Assignment 5)"
+  numExecutors: 2
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "${JENKINS_ADMIN_ID:-admin}"
+          password: "${JENKINS_ADMIN_PASSWORD}"
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+
+unclassified:
+  location:
+    url: "http://localhost:8080/"
+
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - usernamePassword:
+              scope: GLOBAL
+              id: "dockerhub"
+              description: "Docker Hub login + access token (used only when PUSH_IMAGE=true)"
+              username: "${DOCKERHUB_USER:-not-set}"
+              password: "${DOCKERHUB_TOKEN:-not-set}"
+
+jobs:
+  - script: |
+      pipelineJob('smart-waste-astana') {
+        description('CI/CD for research/smart-waste-astana: tests, Docker image, staging deploy')
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote { url('${REPO_URL:-https://github.com/NuKAHAHA/waste.git}') }
+                branch('*/${REPO_BRANCH:-main}')
+              }
+            }
+            scriptPath('research/smart-waste-astana/Jenkinsfile')
+            lightweight(true)
+          }
+        }
+      }

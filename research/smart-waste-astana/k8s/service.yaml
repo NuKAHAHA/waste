@@ -1,0 +1,15 @@
+# Minikube: `minikube service smart-waste -n smart-waste` opens the dashboard.
+apiVersion: v1
+kind: Service
+metadata:
+  name: smart-waste
+  namespace: smart-waste
+spec:
+  type: NodePort
+  selector:
+    app: smart-waste
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      nodePort: 30080

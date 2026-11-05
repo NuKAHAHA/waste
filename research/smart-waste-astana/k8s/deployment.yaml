@@ -1,0 +1,70 @@
+# Runs the 5-agent pipeline at start-up and serves dashboard.html, report.json, priorities.csv.
+# Jenkins substitutes the freshly pushed Docker Hub tag for the image below before applying.
+# Manual Minikube run: `minikube image load smart-waste-astana:latest`,
+#   then `kubectl apply -f k8s/namespace.yaml` and `kubectl apply -f k8s/`
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smart-waste
+  namespace: smart-waste
+  labels:
+    app: smart-waste
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: smart-waste
+  template:
+    metadata:
+      labels:
+        app: smart-waste
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          image: smart-waste-astana:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python", "tools/serve.py", "--port", "8080", "--output", "/tmp/results"]
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: results
+              mountPath: /tmp
+      volumes:
+        - name: results
+          emptyDir: {}

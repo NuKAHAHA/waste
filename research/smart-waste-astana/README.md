@@ -47,6 +47,15 @@ CI/CD: https://github.com/NuKAHAHA/waste/blob/main/.github/workflows/smart-waste
 Запуски: https://github.com/NuKAHAHA/waste/actions/workflows/smart-waste-ci.yml
 Issues: https://github.com/NuKAHAHA/waste/issues
 
+## Docker и Jenkins (Assignment 5)
+
+```bash
+docker build -t smart-waste-astana .
+docker run --rm smart-waste-astana
+```
+
+Jenkinsfile, Jenkins в Docker и манифесты Minikube: [ci/README.md](ci/README.md).
+
 30 тестов:
 
 Прогноз заполненности	

@@ -1,0 +1,23 @@
+# Local Jenkins for the Smart Waste Astana pipeline.
+#   cd research/smart-waste-astana/ci/jenkins
+#   cp .env.example .env   # then set JENKINS_ADMIN_PASSWORD
+#   docker compose up -d --build
+#   open http://localhost:8080
+services:
+  jenkins:
+    build: .
+    container_name: jenkins
+    # Root is needed to use the host Docker socket on Docker Desktop.
+    # Acceptable for a local study setup; do not expose this Jenkins to the internet.
+    user: root
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file: .env
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./casc.yaml:/var/jenkins_conf/casc.yaml:ro
+
+volumes:
+  jenkins_home:

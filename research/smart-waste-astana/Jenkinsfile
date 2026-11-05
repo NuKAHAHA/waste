@@ -1,0 +1,207 @@
+// CI/CD pipeline for Smart Waste Astana (5-agent research module).
+//
+// CI : checkout -> unit tests in Docker (JUnit report) -> build image -> smoke test
+// CD : optional push to Docker Hub -> deploy to a staging container -> optional Minikube deploy
+//
+// The job is created automatically by ci/jenkins (Configuration as Code).
+// Requirements on the agent: docker CLI with access to a Docker daemon; kubectl for Kubernetes.
+
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+        timeout(time: 20, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+    }
+
+    // A local Jenkins is not reachable from GitHub webhooks, so the repository is
+    // polled every 2 minutes: each new commit on main starts a build.
+    triggers {
+        pollSCM('H/2 * * * *')
+    }
+
+    parameters {
+        booleanParam(name: 'PUSH_IMAGE', defaultValue: false,
+                     description: 'Push the image to Docker Hub (needs the "dockerhub" credential)')
+        booleanParam(name: 'DEPLOY_STAGING', defaultValue: true,
+                     description: 'Run the image as a staging container on http://localhost:8088')
+        booleanParam(name: 'DEPLOY_K8S', defaultValue: false,
+                     description: 'Deploy to Minikube (needs PUSH_IMAGE and the "kubeconfig" credential)')
+    }
+
+    environment {
+        APP_DIR = 'research/smart-waste-astana'
+        IMAGE   = 'smart-waste-astana'
+        STAGING = 'smart-waste-staging'
+        STAGING_PORT = '8088'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                script {
+                    env.SHORT_SHA = sh(script: 'git rev-parse --short=7 HEAD', returnStdout: true).trim()
+                    env.IMAGE_TAG = "${env.BUILD_NUMBER}-${env.SHORT_SHA}"
+                    env.APP_VERSION = readFile("${env.APP_DIR}/VERSION").trim()
+                }
+                echo "Commit ${env.SHORT_SHA}, version ${env.APP_VERSION}, image tag ${env.IMAGE_TAG}"
+            }
+        }
+
+        stage('Unit tests') {
+            steps {
+                dir(env.APP_DIR) {
+                    sh '''
+                        docker build --target test -t "$IMAGE:test-$BUILD_NUMBER" .
+                        rc=0
+                        docker run --name "sw-test-$BUILD_NUMBER" "$IMAGE:test-$BUILD_NUMBER" || rc=$?
+                        mkdir -p reports
+                        docker cp "sw-test-$BUILD_NUMBER:/reports/junit.xml" reports/junit.xml || true
+                        docker rm -f "sw-test-$BUILD_NUMBER" > /dev/null
+                        exit $rc
+                    '''
+                }
+            }
+            post {
+                always {
+                    junit testResults: "${env.APP_DIR}/reports/junit.xml", allowEmptyResults: false
+                }
+            }
+        }
+
+        stage('Build image') {
+            steps {
+                dir(env.APP_DIR) {
+                    sh '''
+                        docker build --target runtime \
+                            --build-arg VERSION="$APP_VERSION" \
+                            --build-arg VCS_REF="$SHORT_SHA" \
+                            -t "$IMAGE:$IMAGE_TAG" -t "$IMAGE:latest" .
+                        docker image ls "$IMAGE"
+                    '''
+                }
+            }
+        }
+
+        stage('Smoke test') {
+            steps {
+                dir(env.APP_DIR) {
+                    sh '''
+                        # The image must not run as root.
+                        test "$(docker run --rm --entrypoint id "$IMAGE:$IMAGE_TAG" -u)" = "10001"
+
+                        # Synthetic demo: all 5 agents must finish and print "OK:".
+                        rm -rf results && mkdir -p results
+                        docker run --name "sw-smoke-$BUILD_NUMBER" "$IMAGE:$IMAGE_TAG" | tee results/demo.log
+                        grep -q '^OK:' results/demo.log
+                        docker cp "sw-smoke-$BUILD_NUMBER:/app/results/." results/
+                        docker rm "sw-smoke-$BUILD_NUMBER" > /dev/null
+                        test -s results/dashboard.html
+                        test -s results/report.json
+
+                        # The bundled CSV must also be accepted by the "analyze" command.
+                        docker run --rm "$IMAGE:$IMAGE_TAG" analyze \
+                            --input data/astana_synthetic.csv --output /tmp/out | grep '^OK:'
+                    '''
+                }
+            }
+            post {
+                always {
+                    sh 'docker rm -f "sw-smoke-$BUILD_NUMBER" > /dev/null 2>&1 || true'
+                }
+                success {
+                    archiveArtifacts artifacts: "${env.APP_DIR}/results/**", fingerprint: true
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            when { expression { params.PUSH_IMAGE } }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub',
+                                                  usernameVariable: 'DH_USER',
+                                                  passwordVariable: 'DH_TOKEN')]) {
+                    sh '''
+                        echo "$DH_TOKEN" | docker login -u "$DH_USER" --password-stdin
+                        for tag in "$IMAGE_TAG" latest; do
+                            docker tag "$IMAGE:$IMAGE_TAG" "$DH_USER/$IMAGE:$tag"
+                            docker push "$DH_USER/$IMAGE:$tag"
+                        done
+                        docker logout
+                    '''
+                    script { env.REMOTE_IMAGE = "${env.DH_USER}/${env.IMAGE}:${env.IMAGE_TAG}" }
+                }
+            }
+        }
+
+        stage('Deploy to staging') {
+            when {
+                allOf {
+                    expression { params.DEPLOY_STAGING }
+                    anyOf {
+                        branch 'main'
+                        expression { env.BRANCH_NAME == null }
+                    }
+                }
+            }
+            steps {
+                sh '''
+                    docker rm -f "$STAGING" > /dev/null 2>&1 || true
+                    docker run -d --name "$STAGING" --restart unless-stopped \
+                        -p "$STAGING_PORT:8080" --entrypoint python \
+                        "$IMAGE:$IMAGE_TAG" tools/serve.py
+
+                    # Health check from inside the container (works when Jenkins itself runs in Docker).
+                    for i in $(seq 1 15); do
+                        if docker exec "$STAGING" python -c "import urllib.request as u; u.urlopen('http://127.0.0.1:8080/healthz', timeout=2)"; then
+                            echo "Staging is up: http://localhost:$STAGING_PORT"
+                            exit 0
+                        fi
+                        sleep 2
+                    done
+                    docker logs "$STAGING"
+                    exit 1
+                '''
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            when { expression { params.DEPLOY_K8S } }
+            steps {
+                script {
+                    if (!env.REMOTE_IMAGE) {
+                        error('DEPLOY_K8S needs PUSH_IMAGE=true: the cluster pulls the image from Docker Hub.')
+                    }
+                }
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    dir(env.APP_DIR) {
+                        sh '''
+                            kubectl apply -f k8s/namespace.yaml
+                            sed "s|image: smart-waste-astana:latest|image: $REMOTE_IMAGE|" k8s/deployment.yaml \
+                                | kubectl apply -f -
+                            kubectl apply -f k8s/service.yaml
+                            kubectl -n smart-waste rollout status deployment/smart-waste --timeout=180s
+                            kubectl -n smart-waste get pods,svc -o wide
+                        '''
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Remove the per-build test image; keep runtime images for rollbacks.
+            sh 'docker image rm -f "$IMAGE:test-$BUILD_NUMBER" > /dev/null 2>&1 || true'
+        }
+        success {
+            echo "Pipeline succeeded: image ${env.IMAGE}:${env.IMAGE_TAG}"
+        }
+        failure {
+            echo 'Pipeline failed: see the stage log and the JUnit report above.'
+        }
+    }
+}
