@@ -12,10 +12,13 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends docker-ce-cli docker-buildx-plugin \
  && rm -rf /var/lib/apt/lists/*
 
-RUN KUBECTL_VERSION="$(curl -fsSL https://dl.k8s.io/release/stable.txt)" \
- && curl -fsSLo /usr/local/bin/kubectl \
-      "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/$(dpkg --print-architecture)/kubectl" \
- && chmod +x /usr/local/bin/kubectl
+# kubectl is only needed for the optional Minikube stage. If dl.k8s.io is slow or
+# unreachable, skip it instead of failing the whole Jenkins build.
+RUN (KUBECTL_VERSION="$(curl -fsSL --connect-timeout 10 --max-time 20 https://dl.k8s.io/release/stable.txt)" \
+  && curl -fsSLo /usr/local/bin/kubectl --connect-timeout 10 --max-time 120 \
+       "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/$(dpkg --print-architecture)/kubectl" \
+  && chmod +x /usr/local/bin/kubectl) \
+ || (rm -f /usr/local/bin/kubectl; echo "kubectl skipped: dl.k8s.io unreachable (only the optional Kubernetes stage needs it)")
 
 USER jenkins
 COPY plugins.txt /usr/share/jenkins/ref/plugins.txt
